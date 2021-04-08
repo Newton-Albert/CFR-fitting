@@ -1,0 +1,62 @@
+---
+title: "CFR-fitting"
+output: html_document
+---
+
+##The pandemic worldwide is still continues. To see the trend of the COVID-19 all over the world, we can use the data from WHO to show the daily confirmed cases and daily confirmed deaths.  
+Firstly, download the data from WHO and read it into R
+```{r}
+#setwd("C:\\Users\\Laplace\\Documents\\R work in CityU\\SIR epidemics")
+mydata <- read.csv("WHO-COVID-19-global-data.csv", sep = ",")
+names(mydata)[1] <- "Date_reported"
+mydata$Date_reported <- as.Date(as.character(mydata$Date_reported), format = "%Y/%m/%d")
+```
+
+##Define the daily reported cases and daily deaths
+```{r}
+library(dplyr)
+daily_reported_cases <- mydata %>% 
+  filter(Date_reported >= as.Date("20200201", format = "%Y%m%d")) %>%
+  group_by(Date_reported) %>% 
+  summarise(daily_new_cases = sum(New_cases))
+
+daily_death_cases <- mydata %>% 
+  filter(Date_reported >= as.Date("20200201", format = "%Y%m%d")) %>%
+  group_by(Date_reported) %>% 
+  summarise(daily_death_cases = sum(New_deaths))
+```
+##Show the daily number of reported cases and daily number of reported deaths worldwide
+
+```{r}
+library(ggplot2)
+datebreaks <- seq(as.Date("2020-02-01"), as.Date("2021-03-31"),by = "15 day")
+ggplot(data = daily_reported_cases, aes(x = Date_reported, y = daily_new_cases)) +
+  geom_point()+
+  geom_smooth()+
+  scale_x_date(breaks = datebreaks) + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))+
+  labs(x = "Date",y = "Reported cases",title = "Daily number of reported cases worldwide (from 2020-02-01 to 2021-03-31)") 
+ 
+ggplot(data = daily_death_cases, aes(x = Date_reported, y = daily_death_cases)) +
+  geom_point()+
+  geom_smooth()+
+  scale_x_date(breaks = datebreaks) + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))+
+  labs(x = "Date",y = "Death cases",title = "Daily number of reported deaths worldwide (from 2020-02-01 to 2021-03-31)") 
+```
+##Calculate the case fatality rate without any type of delay
+
+```{r}
+CFR_without_delay <- data.frame(Date_reported = daily_death_cases$Date_reported, CFR = daily_death_cases$daily_death_cases/daily_reported_cases$daily_new_cases)
+
+```
+##Show the trend of CFR
+```{r}
+ggplot(data = CFR_without_delay, aes(x = Date_reported, y = CFR)) +
+  geom_point()+
+  geom_smooth(method = "gam")+
+  scale_x_date(breaks = datebreaks) + 
+  theme(axis.text.x = element_text(angle = 30, hjust = 1))+
+  labs(x = "Date",y = "Cumulative Fatality Rate(CFR)",title = "Daily number of CFR(without delay) worldwide (from 2020-02-01 to 2021-03-31)") 
+```
+
